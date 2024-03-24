@@ -1,45 +1,30 @@
-import express from 'express';
-import path from 'path';
-import bodyParser from 'body-parser';
-import logger from 'morgan';
-import mongoose from 'mongoose';
-import cors from 'cors';
-import SourceMapSupport from 'source-map-support';
-import routes from './src/routes/api';
-// define our app using express
+// Load env variables
+if (process.env.NODE_ENV != "production") {
+  require("dotenv").config();
+}
+
+// Import dependencies
+const express = require("express");
+const cors = require("cors");
+const connectToDb = require("./config/connectToDb");
+const notesController = require("./controllers/notesController");
+
+// Create an express app
 const app = express();
 
-app.use(cors())
+// Configure express app
+app.use(express.json());
+app.use(cors());
 
-app.use("/api/uploads", express.static(__dirname + '/uploads'));
+// Connect to database
+connectToDb();
 
+// Routing
+app.get("/notes", notesController.fetchNotes);
+app.get("/notes/:id", notesController.fetchNote);
+app.post("/notes", notesController.createNote);
+app.put("/notes/:id", notesController.updateNote);
+app.delete("/notes/:id", notesController.deleteNote);
 
-// configure app
-app.use(logger('dev'));
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended:true }));
-app.use(express.static(path.join(__dirname, 'public')));
-
-
-// set the port
-const port = process.env.PORT || 3001;
-
-// connect to database
-mongoose.Promise = global.Promise;
-mongoose.connect('mongodb://localhost/mern-crud');
-SourceMapSupport.install();
-app.get('/', (req,res) => {
-  return res.end('Api working');
-})
-
-app.use('/api', routes);
-
-// catch 404
-app.use((req, res, next) => {
-  res.status(404).send('<h2 align=center>Page Not Found!</h2>');
-});
-
-// start the server
-app.listen(port,() => {
-  console.log(`App Server Listening at ${port}`);
-});
+// Start our server
+app.listen(process.env.PORT);
